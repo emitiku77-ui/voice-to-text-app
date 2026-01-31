@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Voice to Text Editor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family: Arial, sans-serif;
+}
+
+body{
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background: linear-gradient(135deg,#667eea,#764ba2);
+}
+
+.app{
+  background:#fff;
+  width:90%;
+  max-width:430px;
+  padding:20px;
+  border-radius:20px;
+  box-shadow:0 15px 30px rgba(0,0,0,0.3);
+  animation: slideUp 0.8s ease;
+}
+
+@keyframes slideUp{
+  from{transform:translateY(40px);opacity:0;}
+  to{transform:translateY(0);opacity:1;}
+}
+
+h1{
+  text-align:center;
+  margin-bottom:10px;
+}
+
+select, textarea{
+  width:100%;
+  padding:12px;
+  border-radius:12px;
+  border:2px solid #ddd;
+  font-size:16px;
+}
+
+textarea{
+  height:170px;
+  resize:none;
+}
+
+.buttons{
+  display:flex;
+  gap:8px;
+  margin-top:12px;
+  flex-wrap:wrap;
+}
+
+button{
+  flex:1;
+  padding:12px;
+  border:none;
+  border-radius:12px;
+  font-size:15px;
+  cursor:pointer;
+  transition:transform 0.2s, box-shadow 0.2s;
+}
+
+button:hover{
+  transform:scale(1.05);
+  box-shadow:0 5px 10px rgba(0,0,0,0.2);
+}
+
+#startBtn{background:#4CAF50;color:white;}
+#stopBtn{background:#f44336;color:white;}
+#clearBtn{background:#607D8B;color:white;}
+#saveBtn{background:#3F51B5;color:white;}
+#aboutBtn{background:#009688;color:white;}
+#devBtn{background:#FF9800;color:white;}
+
+.listening{
+  animation:pulse 1s infinite;
+}
+
+@keyframes pulse{
+  0%{box-shadow:0 0 0 0 rgba(76,175,80,0.7);}
+  70%{box-shadow:0 0 0 15px rgba(76,175,80,0);}
+  100%{box-shadow:0 0 0 0 rgba(76,175,80,0);}
+}
+
+#status{
+  text-align:center;
+  margin-top:10px;
+  font-weight:bold;
+}
+
+/* MODAL */
+.modal{
+  display:none;
+  position:fixed;
+  top:0;left:0;
+  width:100%;height:100%;
+  background:rgba(0,0,0,0.6);
+  justify-content:center;
+  align-items:center;
+}
+
+.modal-content{
+  background:white;
+  width:85%;
+  max-width:350px;
+  padding:20px;
+  border-radius:15px;
+  text-align:center;
+  animation: slideUp 0.4s ease;
+}
+
+.close{
+  margin-top:15px;
+  background:#f44336;
+  color:white;
+  padding:10px;
+  border-radius:10px;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+  <h1>🎙️ Voice to Text</h1>
+
+  <select id="language">
+    <option value="en-US">English</option>
+    <option value="am-ET">Amharic (አማርኛ)</option>
+  </select>
+
+  <textarea id="textArea" placeholder="Speak now..."></textarea>
+
+  <div class="buttons">
+    <button id="startBtn">🎤 Start</button>
+    <button id="stopBtn">⏹ Stop</button>
+    <button id="clearBtn">🗑 Clear</button>
+    <button id="saveBtn">💾 Save</button>
+    <button id="aboutBtn">ℹ About App</button>
+    <button id="devBtn">👨‍💻 Developer</button>
+  </div>
+
+  <p id="status">Status: Idle</p>
+</div>
+
+<!-- ABOUT APP MODAL -->
+<div class="modal" id="aboutModal">
+  <div class="modal-content">
+    <h3>About This App</h3>
+    <p>
+      This Voice-to-Text Editor converts spoken words into editable text
+      using modern web technologies.  
+      It supports English and Amharic languages
+      and is designed for mobile and desktop users.
+    </p>
+    <div class="close" onclick="closeModal('aboutModal')">Close</div>
+  </div>
+</div>
+
+<!-- DEVELOPER INFO MODAL -->
+<div class="modal" id="devModal">
+  <div class="modal-content">
+    <h3>Developer Information</h3>
+    <p>
+      <strong>Name:</strong> Dera Mitiku<br><br>
+      <strong>Phone:</strong> 0974386778<br><br>
+      <strong>Technologies:</strong><br>
+      HTML, CSS, JavaScript<br>
+      Web Speech API
+    </p>
+    <div class="close" onclick="closeModal('devModal')">Close</div>
+  </div>
+</div>
+
+<script>
+const startBtn = document.getElementById("startBtn");
+const stopBtn = document.getElementById("stopBtn");
+const clearBtn = document.getElementById("clearBtn");
+const saveBtn = document.getElementById("saveBtn");
+const aboutBtn = document.getElementById("aboutBtn");
+const devBtn = document.getElementById("devBtn");
+const textArea = document.getElementById("textArea");
+const statusText = document.getElementById("status");
+const languageSelect = document.getElementById("language");
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const recognition = new SpeechRecognition();
+
+recognition.continuous = true;
+recognition.interimResults = true;
+
+recognition.onresult = (event)=>{
+  let transcript="";
+  for(let i=event.resultIndex;i<event.results.length;i++){
+    transcript+=event.results[i][0].transcript;
+  }
+  textArea.value=transcript;
+};
+
+recognition.onstart=()=>{
+  statusText.textContent="Status: Listening...";
+  startBtn.classList.add("listening");
+};
+
+recognition.onend=()=>{
+  statusText.textContent="Status: Stopped";
+  startBtn.classList.remove("listening");
+};
+
+startBtn.onclick=()=>{
+  recognition.lang=languageSelect.value;
+  recognition.start();
+};
+
+stopBtn.onclick=()=>recognition.stop();
+clearBtn.onclick=()=>textArea.value="";
+
+saveBtn.onclick=()=>{
+  if(!textArea.value.trim()){
+    alert("No text to save");
+    return;
+  }
+  const blob=new Blob([textArea.value],{type:"text/plain"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="voice-text.txt";
+  a.click();
+};
+
+aboutBtn.onclick=()=>document.getElementById("aboutModal").style.display="flex";
+devBtn.onclick=()=>document.getElementById("devModal").style.display="flex";
+
+function closeModal(id){
+  document.getElementById(id).style.display="none";
+}
+</script>
+
+</body>
+</html>
